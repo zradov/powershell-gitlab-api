@@ -1,4 +1,4 @@
-![Test Coverage](https://img.shields.io/badge/coverage-47%25-red.svg?maxAge=60)
+![Test Coverage](https://img.shields.io/badge/coverage-57%25-red.svg?maxAge=60)
 
 ### powershell-gitlab-api
 

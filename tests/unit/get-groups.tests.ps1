@@ -19,6 +19,7 @@ Describe "Get-Groups" {
         Context "When retrieving GitLab groups" {
             It "should call Send-ApiRequest with correct parameters" {
                 Get-Groups -Server $server -AccessToken $accessToken
+
                 Assert-MockCalled Send-ApiRequest -Exactly 1 -Scope It -ParameterFilter {
                     $Type -eq "GetGroups" -and
                     $ApiArgs.Server -eq $server -and
@@ -28,6 +29,7 @@ Describe "Get-Groups" {
 
             It "should return the correct groups information" {
                 $result = Get-Groups -Server $server -AccessToken $accessToken
+                
                 $result.Count | Should -Be 2
                 $result[0].id | Should -Be 1
                 $result[1].id | Should -Be 2

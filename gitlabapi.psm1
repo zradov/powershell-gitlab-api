@@ -14,10 +14,10 @@ class ServerInfo {
     }
 }
 
-class HttpRequestException: System.Exception {
+class FailedAPIRequestException: System.Exception {
     [string] $StatusCode
 
-    HttpRequestException([string] $message, [string] $statusCode) : base ($message) {
+    FailedAPIRequestException([string] $message, [string] $statusCode) : base ($message) {
         $this.StatusCode = $statusCode
     }
 }
@@ -1114,7 +1114,8 @@ Function Compare-Branches {
             Target = $Target
         }
         $commitsCount = $response.commits.Count
-    } catch [HttpRequestException] {
+    } catch [FailedAPIRequestException] {
+        Write-Host "$($_.Exception.StatusCode)"
         if ($_.Exception.StatusCode -eq "NotFound") {
             Write-Verbose "The GitLab project with ID $Project or branches '$Source' or '$Target' do not exist."
             return "/"
@@ -1146,8 +1147,7 @@ Function Get-HttpMethod {
     switch -Regex ($Type) {
         "^Get" { return "GET" }
         "^Open" { return "PUT" }
-        "^(Remove|Delete)" { return "DELETE" }
-        default { throw "Unknown HTTP method." }
+        "^Remove" { return "DELETE" }
     }
 }
 
@@ -1228,8 +1228,14 @@ Function Send-ApiRequest {
             }
 
             Write-Verbose "Response content: $($response.Content)"
+            
+            $jsonData = ConvertFrom-Json -InputObject $response.Content
 
-            $data += ConvertFrom-Json -InputObject $response.Content
+            if ($jsonData -is [Array]) {
+                $data += $jsonData
+            } else {
+                $data += @($jsonData)
+            }
 
             if (!$response.Headers["X-Next-Page"]) {
                 break
@@ -1254,7 +1260,7 @@ Function Send-ApiRequest {
             Write-Verbose "Current API endpoint after updating the page number: $currentApiUrl"
         } while ($nextPage -and $nextPage -le $MaxPages)
     } catch {
-        throw [HttpRequestException]::new($_.Exception.Message, $_.Exception.Response.StatusCode)
+        throw [FailedAPIRequestException]::new($_.Exception.Message, $_.Exception.Response.StatusCode)
     }
 
     return $data
