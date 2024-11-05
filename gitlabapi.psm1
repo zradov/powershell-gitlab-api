@@ -1460,7 +1460,7 @@ Function Test-CommitsSync {
 
     Write-Verbose "Unsynced commits total: $($unsyncedCommits.Count)"
 
-    return $unsyncedCommits
+    return ,$unsyncedCommits
 }
     
 Function Get-ActiveProjects {
