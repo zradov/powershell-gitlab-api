@@ -1115,7 +1115,6 @@ Function Compare-Branches {
         }
         $commitsCount = $response.commits.Count
     } catch [FailedAPIRequestException] {
-        Write-Host "$($_.Exception.StatusCode)"
         if ($_.Exception.StatusCode -eq "NotFound") {
             Write-Verbose "The GitLab project with ID $Project or branches '$Source' or '$Target' do not exist."
             return "/"
@@ -1646,12 +1645,12 @@ Function Get-FilesContainingPattern {
             return
         }
 
-        $piiDataPerProject = @()
+        $dataPerProject = [System.Collections.ArrayList]::New()
 
         $projects | ForEach-Object -Begin { $index = 1; $projectsCount = $projects.Count } -Process {
             Write-Verbose "Searching for PII data in the project '$($_.path_with_namespace)'."
             $clonedRepoPath = Initialize-Repository -Url "$($_.http_url_to_repo)" -AccessToken $AccessToken -Shallow
-            $availableBranches = git -C "$clonedRepoPath" branch -r | ForEach-Object { $_.Trim() }
+            $availableBranches = Invoke-Expression -Command "git -C '$clonedRepoPath' branch -r" | ForEach-Object { $_.Trim() }
             $branchToCheck = $Branches | Where-Object { "origin/$_" -in $availableBranches } | Select-Object -First 1
 
             try {
@@ -1661,16 +1660,16 @@ Function Get-FilesContainingPattern {
                 }
 
                 Write-Verbose "Found branch $branchToCheck, checking out."
-                $output = git -C "$clonedRepoPath" checkout "$branchToCheck" 2>&1
+                $output = Invoke-Expression -Command "git -C '$clonedRepoPath' checkout $branchToCheck" 2>&1
                 if ($LASTEXITCODE -gt 0) { throw $output }
 
                 $data = Find-PatternInFiles -Path "$clonedRepoPath" -SearchPatterns $SearchPatterns -FilesPattern $IncludeFiles
                 if ($data) {
                     Write-Verbose "Found $($data.Count) lines in files found in the project '$($_.path_with_namespace)'."
-                    $dataPerProject += [PSCustomObject]@{
+                    [void]$dataPerProject.Add([PSCustomObject]@{
                         Project = $_.path_with_namespace
                         Data = $data
-                    }
+                    })
                 } else {
                     Write-Verbose "No files containing the specified patterns found in the project '$($_.path_with_namespace)'."
                 }
